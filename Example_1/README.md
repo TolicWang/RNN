@@ -16,3 +16,5 @@
 在测试集上的表现为0.9706<br>
 
 [源代码](./V_1.py)
+
+[循环神经网络系列（四）基于LSTM的MNIST手写体识别](https://blog.csdn.net/The_lastest/article/details/83745098)
