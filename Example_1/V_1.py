@@ -56,7 +56,10 @@ def train(mnist):
             if i % 200 == 0:
                 print("Loss on train:%f --- acc:%f" % (l, train_acc))
             if (i + 1) % 10000 == 0:
+                test_acc = sess.run(accuracy,feed_dict=test_feed)
+                print("test accuracy:%f" % test_acc)
                 saver.save(sess, MODEL_SAVE_PATH, global_step=global_step, write_meta_graph=False)
+
 
 
 if __name__ == "__main__":
