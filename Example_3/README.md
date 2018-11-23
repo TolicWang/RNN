@@ -1,6 +1,6 @@
 ## 基于 peepholes LSTM 的ConvLSTM
 
-由于`contrib.rnn.ConvLSTMCell`中对于`ConvLSTMCell`的实现本没有基于原作者的所应用的带有 "peepholes connection"的LSTM。因此，这里就照着葫芦画瓢，直接在原来的`contrib.rnn.ConvLSTMCell`上添加了`peepholes`这一步。<br>
+由于`contrib.rnn.ConvLSTMCell`中对于`ConvLSTMCell`的实现本没有基于原作者的所应用的带有 "peepholes connection"的LSTM。因此，这里就照着葫芦画瓢，直接在原来的`contrib.rnn.ConvLSTMCell`的`call()`实现中上添加了`peepholes`这一步。<br>
 
 添加的代码为：
 ```python
