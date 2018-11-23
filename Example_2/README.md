@@ -5,7 +5,7 @@
 ### 预测
 ![p0034](https://github.com/TolicWang/Pictures/raw/master/Pic/p0034.png)
 
-[循环神经网络系列（六）基于LSTM的唐诗生成 ]()
+[循环神经网络系列（六）基于LSTM的唐诗生成 ](https://blog.csdn.net/The_lastest/article/details/84028332)
 
 使用方法：
 
