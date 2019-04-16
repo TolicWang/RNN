@@ -16,6 +16,7 @@ from tensorflow.python.ops import nn_ops
 from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope as vs
 
+
 class BasicConvLSTM(rnn_cell_impl.RNNCell):
     def __init__(self,
                  conv_ndims,
@@ -25,6 +26,7 @@ class BasicConvLSTM(rnn_cell_impl.RNNCell):
                  use_bias=True,
                  skip_connection=False,
                  forget_bias=1.0,
+                 peephole=True,
                  initializers=None,
                  name="conv_lstm_cell"):
         """Construct ConvLSTMCell.
@@ -55,6 +57,7 @@ class BasicConvLSTM(rnn_cell_impl.RNNCell):
         self._use_bias = use_bias
         self._forget_bias = forget_bias
         self._skip_connection = skip_connection
+        self._peephole = peephole
 
         self._total_output_channels = output_channels
         if self._skip_connection:
@@ -84,16 +87,21 @@ class BasicConvLSTM(rnn_cell_impl.RNNCell):
                                 num_or_size_splits=4,
                                 axis=self._conv_ndims + 1)
         input_gate, new_input, forget_gate, output_gate = gates
-        w_ci = vs.get_variable(
-            "w_ci", cell.shape, inputs.dtype)
-        w_cf = vs.get_variable(
-            "w_cf", cell.shape, inputs.dtype)
-        w_co = vs.get_variable(
-            "w_co", cell.shape, inputs.dtype)
+        if self._peephole:
+            w_ci = vs.get_variable(
+                "w_ci", cell.shape, inputs.dtype)
+            w_cf = vs.get_variable(
+                "w_cf", cell.shape, inputs.dtype)
+            w_co = vs.get_variable(
+                "w_co", cell.shape, inputs.dtype)
 
-        new_cell = math_ops.sigmoid(forget_gate + self._forget_bias + w_cf * cell) * cell
-        new_cell += math_ops.sigmoid(input_gate + w_ci * cell) * math_ops.tanh(new_input)
-        output = math_ops.tanh(new_cell) * math_ops.sigmoid(output_gate + w_co * new_cell)
+            new_cell = math_ops.sigmoid(forget_gate + self._forget_bias + w_cf * cell) * cell
+            new_cell += math_ops.sigmoid(input_gate + w_ci * cell) * math_ops.tanh(new_input)
+            output = math_ops.tanh(new_cell) * math_ops.sigmoid(output_gate + w_co * new_cell)
+        else:
+            new_cell = math_ops.sigmoid(forget_gate + self._forget_bias) * cell
+            new_cell += math_ops.sigmoid(input_gate) * math_ops.tanh(new_input)
+            output = math_ops.tanh(new_cell) * math_ops.sigmoid(output_gate)
 
         if self._skip_connection:
             output = array_ops.concat([output, inputs], axis=-1)
