@@ -16,10 +16,11 @@ if __name__ == '__main__':
     logger = Logger(log_file_name='./log_train.txt', log_level=logging.DEBUG, logger_name="test").get_log()
     data = input_data(special_tokens=special_tokens, preview=True, keep_rate=1.0, share_vocab=False)
     source_input, target_input, target_output, src_vocab_table, tgt_vocab_table, src_vocab_table_len, tgt_vocab_table_len = \
-        data.load_data(src_data_dir='./data/chinese.txt', tgt_data_dir='./data/english.txt' )
+        data.load_data(src_data_dir='./data/chinese.txt', tgt_data_dir='./data/english.txt')
     model = Seq2Seq(src_vocab_size=src_vocab_table_len,
                     tgt_vocab_size=tgt_vocab_table_len,
                     logger=logger,
                     model_path='./MODEL',
-                    batch_size=32)
+                    batch_size=32,
+                    use_attention=True)
     model.train(source_input, target_input, target_output, src_vocab_table, tgt_vocab_table, data.gen_batch)

@@ -13,10 +13,6 @@ import logging
 from model import Seq2Seq
 from utils.data_helper import special_tokens
 
-# [[1614, 4, 594, 122, 436, 4, 32697, 4, 54, 87, 1140, 1134, 278, 5390, 44, 6149, 967, 5, 695, 4, 430, 1767, 4, 3201, 32698, 4, 14171, 15368, 4, 83, 1552, 245, 48, 6423, 6149, 6], [9, 843, 5576, 4, 245, 9, 11060, 4, 18807, 4, 6046, 32699, 88, 32700, 4, 346, 21499, 4, 9036, 1474, 515, 1374, 608, 49, 4, 189, 515, 2761, 2520, 49, 6]]
-# [[1614, 4, 594, 122, 436, 4, 32697, 4, 54, 87, 1140, 1134, 278, 5390, 44, 6149, 967, 5, 695, 4, 430, 1767, 4, 3201, 32698, 4, 14171, 15368, 4, 83, 1552, 245, 48, 6423, 6149, 6, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], [9, 843, 5576, 4, 245, 9, 11060, 4, 18807, 4, 6046, 32699, 88, 32700, 4, 346, 21499, 4, 9036, 1474, 515, 1374, 608, 49, 4, 189, 515, 2761, 2520, 49, 6, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]]
-
-
 if __name__ == '__main__':
     data = input_data(special_tokens=special_tokens, preview=True, keep_rate=1.0, share_vocab=False)
     _, _, _, src_vocab_table, tgt_vocab_table, src_vocab_table_len, tgt_vocab_table_len = \
@@ -34,7 +30,8 @@ if __name__ == '__main__':
                     logger=logger,
                     batch_size=len(source_input),
                     model_path='./MODEL',
-                    inference=True)
+                    inference=True,
+                    use_attention=True)
     translation_index = model.infer(source_input,source_length)[0]
     translations = data._index_transform_to_data(translation_index, tgt_vocab_table)
     for sentence in translations:

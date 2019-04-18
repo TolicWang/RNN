@@ -62,10 +62,8 @@ def create_emb_for_encoder_and_decoder(share_vocab,
 
 class Seq2Seq():
     def __init__(self,
-                 encoder_rnn_size=32,
-                 encoder_rnn_layer=2,
-                 decoder_rnn_size=32,
-                 decoder_rnn_layer=2,
+                 rnn_size=32,
+                 rnn_layer=2,
                  batch_size=32,
                  epoches=100,
                  learning_rate=0.001,
@@ -74,14 +72,13 @@ class Seq2Seq():
                  tgt_vocab_size=None,
                  src_embed_size=64,
                  tgt_embed_size=64,
+                 use_attention=False,
                  inference=False,
                  logger=None,
                  model_path=None
                  ):
-        self.encoder_rnn_size = encoder_rnn_size  # 编码rnn的维度，即num_units
-        self.encoder_rnn_layer = encoder_rnn_layer  # 编码rnn网络的堆叠层数
-        self.decoder_rnn_size = decoder_rnn_size
-        self.decoder_rnn_layer = decoder_rnn_layer
+        self.rnn_size = rnn_size  # rnn的维度，即num_units
+        self.rnn_layer = rnn_layer  # rnn网络的堆叠层数
         self.batch_size = batch_size
         self.epoches = epoches
         self.learning_rate = learning_rate
@@ -90,12 +87,11 @@ class Seq2Seq():
         self.tgt_vocab_size = tgt_vocab_size
         self.src_embed_size = src_embed_size
         self.tgt_embed_size = tgt_embed_size
+        self.use_attention = use_attention
         self.inference = inference
         self.logger = logger
         self.model_path = model_path
 
-        assert self.encoder_rnn_size == self.decoder_rnn_size
-        assert self.encoder_rnn_layer == self.decoder_rnn_layer
         self.logger.info('### Building Network...')
         self._build_placeholder()
         self._build_embedding()
@@ -132,12 +128,12 @@ class Seq2Seq():
 
         self.encoder_emb_inp = tf.nn.embedding_lookup(self.embedding_encoder, self.encoder_inputs)
         encoder_cell = tf.nn.rnn_cell.MultiRNNCell(
-            [get_encoder_cell(self.encoder_rnn_size) for _ in range(self.encoder_rnn_layer)])
+            [get_encoder_cell(self.rnn_size) for _ in range(self.rnn_layer)])  # 建立编码部分的多层RNN  Cell
         self.encoder_outputs, self.encoder_final_state = tf.nn.dynamic_rnn(cell=encoder_cell,
                                                                            inputs=self.encoder_emb_inp,
                                                                            sequence_length=self.source_lengths,
                                                                            time_major=True,
-                                                                           dtype=tf.float32)
+                                                                           dtype=tf.float32)  # 按时间维度展开，建立多层RNN 网络
 
     def _build_decoder(self):
         def get_decoder_cell(rnn_size):
@@ -145,12 +141,28 @@ class Seq2Seq():
             return decoder_cell
 
         decoder_cell = tf.nn.rnn_cell.MultiRNNCell(
-            [get_decoder_cell(self.decoder_rnn_size) for _ in range(self.decoder_rnn_layer)])
+            [get_decoder_cell(self.rnn_size) for _ in range(self.rnn_layer)]) # 建立解码部分的多层RNN  Cell
 
+        decoder_init_state = self.encoder_final_state   #   thought vector
+        if self.use_attention:
+            ################Attention###############################
+
+            # attention_states: [batch_size, max_time, num_units]
+            attention_states = tf.transpose(self.encoder_outputs, [1, 0, 2])
+
+            # Create an attention mechanism
+            attention_mechanism = contrib.seq2seq.LuongAttention(
+                num_units=self.rnn_size, memory=attention_states,
+                memory_sequence_length=self.source_lengths)
+            decoder_cell = contrib.seq2seq.AttentionWrapper(decoder_cell, attention_mechanism,
+                                                            attention_layer_size=self.rnn_size)
+            decoder_init_state = decoder_cell.zero_state(self.batch_size, dtype=tf.float32).clone(
+                cell_state=self.encoder_final_state)
+            ###############################################
         if self.inference:
             helper = contrib.seq2seq.GreedyEmbeddingHelper(self.embedding_decoder,
                                                            tf.fill([self.batch_size], 1), 2)
-            maximum_iterations = tf.round(self.max_source_length * 2)# 这是谷歌NMT中提到的技巧，解码长度设为输入的2倍
+            maximum_iterations = tf.round(self.max_source_length * 2)  # 这是谷歌NMT中提到的技巧，解码长度设为输入的2倍
         else:
             self.decoder_emb_inp = tf.nn.embedding_lookup(self.embedding_decoder, self.decoder_inputs)
             helper = contrib.seq2seq.TrainingHelper(inputs=self.decoder_emb_inp,
@@ -161,7 +173,7 @@ class Seq2Seq():
         projection_layer = tf.layers.Dense(self.tgt_vocab_size, use_bias=False)  # 全连接层
         decoder = contrib.seq2seq.BasicDecoder(cell=decoder_cell,
                                                helper=helper,
-                                               initial_state=self.encoder_final_state,
+                                               initial_state=decoder_init_state,
                                                output_layer=projection_layer)
         outputs, _, _ = contrib.seq2seq.dynamic_decode(decoder=decoder,
                                                        output_time_major=True,
