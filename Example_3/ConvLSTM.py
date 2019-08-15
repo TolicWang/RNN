@@ -88,13 +88,13 @@ class BasicConvLSTM(rnn_cell_impl.RNNCell):
                                 axis=self._conv_ndims + 1)
         input_gate, new_input, forget_gate, output_gate = gates
         if self._peephole:
+            kernel_shape = cell.shape.as_list()[-3:]
             w_ci = vs.get_variable(
-                "w_ci", cell.shape, inputs.dtype)
+                "w_ci", kernel_shape, inputs.dtype)
             w_cf = vs.get_variable(
-                "w_cf", cell.shape, inputs.dtype)
+                "w_cf", kernel_shape, inputs.dtype)
             w_co = vs.get_variable(
-                "w_co", cell.shape, inputs.dtype)
-
+                "w_co", kernel_shape, inputs.dtype)
             new_cell = math_ops.sigmoid(forget_gate + self._forget_bias + w_cf * cell) * cell
             new_cell += math_ops.sigmoid(input_gate + w_ci * cell) * math_ops.tanh(new_input)
             output = math_ops.tanh(new_cell) * math_ops.sigmoid(output_gate + w_co * new_cell)
